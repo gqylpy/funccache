@@ -27,82 +27,71 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import threading
 
 
-class GqylpyCache:
-    __shared_instance_cache__ = False
+class GqylpyCache(type):
+    __shared_instance_cache__ = True
     __not_cache__ = []
 
-    def __new__(cls, *a, **kw):
-        if (
-                len(a) == 1 and
-                a[0].__class__ is GqylpyCache.__new__.__class__ and
-                not kw
-        ):
-            raise NotImplementedError(
-                'Due to code copyright issues, current version does not '
-                'provide the function of the cache function return value. '
-                'But anyway, it will be available soon in the next version.'
-            )
+    def __init__(cls, __name__: str, __bases__: tuple, __dict__: dict):
+        type.__init__(cls, __name__, __bases__, __dict__)
 
-        instance: cls = super().__new__(cls)
-
-        if not cls.__shared_instance_cache__:
-            instance.__cache_pool__ = {}
-        elif not hasattr(cls, '__cache_pool__'):
+        if cls.__shared_instance_cache__:
             cls.__cache_pool__ = {}
 
-        get = super(GqylpyCache, instance).__getattribute__
+        cls.__getattribute__ = __getattribute__(cls)
 
-        for index, method in enumerate(get('__not_cache__')):
-            if method.__class__ in (staticmethod, classmethod):
-                get('__not_cache__')[index] = method.__func__.__name__
+    def __call__(cls, *a, **kw):
+        ins: cls = type.__call__(cls, *a, **kw)
 
-        return instance
+        if not cls.__shared_instance_cache__:
+            ins.__cache_pool__ = {}
 
-    def __call__(*a):
-        raise NotImplementedError(
-            'Due to code copyright issues, current version does not '
-            'provide the function of the cache function return value. '
-            'But anyway, it will be available soon in the next version.'
-        )
+        return ins
 
-    def __getattribute__(self, name: str):
-        get = super().__getattribute__
 
-        if name in get('__dict__'):
-            return get(name)
+class ClassMethodCaller:
 
-        no_cache: dict = get('__not_cache__')
-        func = getattr(get('__class__'), name)
+    def __init__(self, cls: GqylpyCache, ins, sget, name: str):
+        self.cls = cls
+        self.ins = ins
+        self.sget = sget
+        self.name = name
 
-        if func in no_cache or name in no_cache:
-            return get(name)
+    def __call__(self, *a, **kw):
+        cache_pool: dict = self.sget('__cache_pool__')
+        key: tuple = self.name, a, str(kw)
 
-        if callable(func):
-            return get('get_method')(get, name)
+        try:
+            x = cache_pool[key]
+            print(f'get cache: {self.name}, cls: {self.cls}')
+            return x
+        except KeyError:
+            print(f'create cache: {self.name}, cls: {self.cls}')
+            x = self.sget(self.name)(*a, **kw)
+            cache_pool[key] = x
+            return x
 
-        if isinstance(func, property):
-            try:
-                return get('__cache_pool__')[name]
-            except KeyError:
-                result = get(name)
-                get('__cache_pool__')[name] = result
-                return result
+    def __str__(self):
+        return f'{ClassMethodCaller.__name__}(' \
+               f'{self.cls.__module__}.' \
+               f'{self.cls.__name__}.{self.name})'
 
-        return get(name)
 
-    @staticmethod
-    def get_method(get, name: str):
+def __getattribute__(cls: GqylpyCache):
+    def inner(ins: cls, name: str):
+        sget = super(cls, ins).__getattribute__
 
-        def inner(*a, **kw):
-            key = name, a, str(kw)
+        if name in ('__cache_pool__', '__not_cache__') or name not in cls.__dict__:
+            print(f'nonsupport cache: {name}, cls: {cls.__name__}, ins: {ins}')
+            return sget(name)
 
-            try:
-                return get('__cache_pool__')[key]
-            except KeyError:
-                result = get(name)(*a, **kw)
-                get('__cache_pool__')[key] = result
-                return result
+        if name in cls.__not_cache__:
+            print(f'not cache: {name}, cls: {cls.__name__}, ins: {ins}')
+            return sget(name)
 
-        return inner
+        print(f'cacheable: {name}, cls: {cls.__name__}, ins: {ins}')
+        return ClassMethodCaller(cls, ins, sget, name)
+
+    return inner
