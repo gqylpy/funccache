@@ -31,7 +31,7 @@ class Alpha(metaclass=gqylpy_cache):
 ```
 设置类属性 `__shared_instance_cache__ = True` 后，属性 `__cache_pool__` 将被创建在 `Alpha` 类中，而不是 `Alpha` 的每个实例中。
 
-若希望某个方法或`property`不被缓存，可将其加入到 `__not_cache__` 列表：
+若希望某个方法或`property`不被缓存，可将其加入到 `__not_cache__` 列表中：
 
 ```python
 class Alpha(metaclass=gqylpy_cache):

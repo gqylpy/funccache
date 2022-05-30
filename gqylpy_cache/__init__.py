@@ -27,7 +27,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = 1, 1
+__version__ = 1, 2, 'dev1'
 __author__ = '竹永康 <gqylpy@outlook.com>'
 __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 
@@ -50,7 +50,7 @@ __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 设置类属性 `__shared_instance_cache__ = True` 后，属性 "__cache_pool__" 将被创建在
 "Alpha" 类中，而不是 "Alpha" 的每个实例中。
 
-若希望某个方法或property不被缓存，可将其加入到 "__not_cache__" 列表：
+若希望某个方法或property不被缓存，可将其加入到 "__not_cache__" 列表中：
 
     class Alpha(metaclass=gqylpy_cache):
         __not_cache__ = [method_obj_or_method_name, ...]
