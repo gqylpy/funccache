@@ -218,7 +218,7 @@ def __getattribute__(cls: GqylpyCache):
 
         if (
                 attr in ('__cache_pool__', '__not_cache__') or
-                attr in sget('__not_cache__') or
+                attr in cls.__not_cache__ or
                 attr not in cls.__dict__
         ):
             return sget(attr)
