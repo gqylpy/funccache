@@ -27,7 +27,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = 1, 2
+__version__ = 1, 2, 1, 'alpha1'
 __author__ = '竹永康 <gqylpy@outlook.com>'
 __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 
@@ -74,7 +74,6 @@ class _______歌________琪________怡_______玲_______萍_______云_______:
     import sys
 
     __import__(f'{__name__}.g {__name__[7:]}')
-    gpack = sys.modules[__name__]
     gcode = globals()[f'g {__name__[7:]}']
 
     for gname, gvalue in globals().items():
