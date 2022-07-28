@@ -49,3 +49,12 @@ def alpha():
     ...
 ```
 此时，函数 `alpha` 在被调用一次后，其返回值将被缓存。此后的每次调用，只要参数不变，都是直接从缓存中取值，而不会重复执行 `alpha` 函数。
+
+另外一种兼容编辑器语法提示的用法：
+```python
+from gqylpy_cache import cache
+
+@cache
+def alpha():
+    ...
+```

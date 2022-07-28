@@ -13,7 +13,7 @@
 ─██████████████─████████████████───────██████───────██████████████─██████───────────────██████───────
 ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-Copyright (C) 2022 GQYLPY <http://gqylpy.com>
+Copyright (c) 2022 GQYLPY <http://gqylpy.com>. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,11 +27,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = 1, 2, 1, 'alpha1'
+__version__ = 1, 3
 __author__ = '竹永康 <gqylpy@outlook.com>'
 __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 
-"""Use "gqylpy_cache" as metaclass.
+""" Use "gqylpy_cache" as metaclass.
 
     import gqylpy_cache
     class Alpha(metaclass=gqylpy_cache):
@@ -58,7 +58,7 @@ __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 另外，"Alpha" 的子类也拥有上述缓存功能。
 """
 
-"""Use "gqylpy_cache" as decorator.
+""" Use "gqylpy_cache" as decorator.
 
     import gqylpy_cache
     @gqylpy_cache
@@ -67,7 +67,18 @@ __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 
 此时，函数 "alpha" 在被调用一次后，其返回值将被缓存。此后的每次调用，只要参数不变，都是直接从
 缓存中取值，而不会重复执行 alpha 函数。
+
+另外一种兼容编辑器语法提示的用法：
+
+    from gqylpy_cache import cache
+    @cache
+    def alpha():
+        ...
 """
+
+
+def cache(f):
+    ...
 
 
 class _______歌________琪________怡_______玲_______萍_______云_______:
@@ -80,5 +91,8 @@ class _______歌________琪________怡_______玲_______萍_______云_______:
         if gname[:2] == '__' and gname != '__builtins__':
             setattr(gcode.GqylpyCache, gname, gvalue)
 
-    gcode.GqylpyCache.__module__ = __package__
+    gcode.GqylpyCache.__module__  = __package__
+    gcode.GqylpyCache.GqylpyCache = gcode.GqylpyCache
+    gcode.GqylpyCache.cache       = gcode.FunctionCaller
+
     sys.modules[__name__] = gcode.GqylpyCache

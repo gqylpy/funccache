@@ -13,7 +13,7 @@
 ─██████████████─████████████████───────██████───────██████████████─██████───────────────██████───────
 ─────────────────────────────────────────────────────────────────────────────────────────────────────
 
-Copyright (C) 2022 GQYLPY <http://gqylpy.com>
+Copyright (c) 2022 GQYLPY <http://gqylpy.com>. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,15 +29,17 @@ limitations under the License.
 """
 import threading
 
+Function: type = threading.setprofile.__class__
+
 
 class GqylpyCache(type):
     __shared_instance_cache__ = False
     __not_cache__ = []
 
-    def __new__(mcs, *a, **kw):
-        if a[0].__class__ is GqylpyCache.__new__.__class__:
-            return FunctionCaller(a[0])
-        return type.__new__(mcs, *a, **kw)
+    def __new__(mcs, __name__: str, *a, **kw):
+        if isinstance(__name__, (Function, type)):
+            return FunctionCaller(__name__)
+        return type.__new__(mcs, __name__, *a, **kw)
 
     def __init__(cls, __name__: str, __bases__: tuple, __dict__: dict):
         __not_cache__: list = __dict__.get('__not_cache__')
@@ -189,11 +191,14 @@ class ClassMethodCaller:
 
 class FunctionCaller:
 
-    def __init__(self, func):
+    def __init__(self, func: Function):
         self.__func__ = func
         self.__name__ = func.__name__
         self.__qualname__ = func.__qualname__
-        self.__globals__ = func.__globals__
+
+        if func.__class__ is Function:
+            self.__globals__ = func.__globals__
+
         self.__exec_lock__ = threading.Lock()
         self.__cache_pool__ = {}
 
