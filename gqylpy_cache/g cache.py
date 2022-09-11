@@ -168,7 +168,7 @@ class ClassMethodCaller:
 
     def __call__(self, *a, **kw):
         __cache_pool__: dict = self.__sget('__cache_pool__')
-        key: tuple = self.__name__, a, str(kw)
+        key = self.__name__, a, str(kw)
 
         try:
             cache: dict = __cache_pool__[key]

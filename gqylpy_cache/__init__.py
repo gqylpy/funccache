@@ -27,7 +27,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-__version__ = 1, 3
+__version__ = 1, 3, 1
 __author__ = '竹永康 <gqylpy@outlook.com>'
 __source__ = 'https://github.com/gqylpy/gqylpy-cache'
 
@@ -81,7 +81,7 @@ def cache(f):
     ...
 
 
-class _______歌________琪________怡_______玲_______萍_______云_______:
+class _xe6_xad_x8c_xe7_x90_xaa_xe6_x80_xa1_xe7_x8e_xb2_xe8_x90_x8d_xe4_xba_x91:
     import sys
 
     __import__(f'{__name__}.g {__name__[7:]}')
