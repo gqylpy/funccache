@@ -1,6 +1,9 @@
 import setuptools
 import gqylpy_cache as g
 
+with open('README.md', encoding='utf8') as f:
+    readme: str = f.read()
+
 setuptools.setup(
     name=g.__name__,
     version='.'.join(str(n) for n in g.__version__),
@@ -9,7 +12,8 @@ setuptools.setup(
     license='Apache 2.0',
     url='http://gqylpy.com',
     project_urls={'Source': g.__source__},
-    long_description=open('README.md', encoding='utf8').read(),
+    description="如其名，它实现缓存功能，可缓存某个函数或某个类中定义的所有方法的返回值。",
+    long_description=readme,
     long_description_content_type='text/markdown',
     packages=[g.__name__],
     python_requires='>=3.6',

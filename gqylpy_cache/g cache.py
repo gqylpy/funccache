@@ -110,8 +110,9 @@ class GqylpyCache(type):
         if not_found:
             x = f'{cls.__module__}.{cls.__name__}'
             e = not_found if len(not_found) > 1 else not_found[0]
-            raise type('NotCacheDefineError', (Exception,), {'__module__': __package__}) \
-                (f'The "{__package__}" instance "{x}" has no method "{e}".')
+            raise type(
+                'NotCacheDefineError', (Exception,), {'__module__': __package__}
+            )(f'"{__package__}" instance "{x}" has no method "{e}".')
 
     @staticmethod
     def delete_repeated(data: list):
