@@ -11,7 +11,7 @@ value of a callable object or all methods defined in a class.
     >>> def alpha():
     >>>     ...
 
-    @version: 1.3.3
+    @version: 1.3.4
     @author: 竹永康 <gqylpy@outlook.com>
     @source: https://github.com/gqylpy/gqylpy-cache
 

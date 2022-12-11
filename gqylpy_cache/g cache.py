@@ -135,8 +135,13 @@ class ClassMethodCaller:
             except KeyError:
                 cache = __cache_pool__[name] = {}
                 cache['__exec_lock__'] = threading.Event()
-                cache['__return__'] = sget(name)
-                cache['__exec_lock__'].set()
+                try:
+                    cache['__return__'] = sget(name)
+                except Exception as e:
+                    del __cache_pool__[name]
+                    raise e
+                finally:
+                    cache['__exec_lock__'].set()
             else:
                 if '__exec_lock__' in cache:
                     cache['__exec_lock__'].wait()
@@ -193,9 +198,11 @@ class FunctionCaller:
         key = a, str(kw)
 
         self.__exec_lock__.acquire()
-        if key not in self.__cache_pool__:
-            self.__cache_pool__[key] = self.__func__(*a, **kw)
-        self.__exec_lock__.release()
+        try:
+            if key not in self.__cache_pool__:
+                self.__cache_pool__[key] = self.__func__(*a, **kw)
+        finally:
+            self.__exec_lock__.release()
 
         return self.__cache_pool__[key]
 
