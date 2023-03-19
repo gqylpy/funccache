@@ -1,5 +1,5 @@
 """
-Copyright (c) 2022 GQYLPY <http://gqylpy.com>. All rights reserved.
+Copyright (c) 2022, 2023 GQYLPY <http://gqylpy.com>. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import threading
 Function: type = threading.setprofile.__class__
 
 
-class GqylpyCache(type):
+class FuncCache(type):
     __shared_instance_cache__ = False
     __not_cache__ = []
 
@@ -114,9 +114,9 @@ class GqylpyCache(type):
             index -= 1
 
     def local_instance_dict_set(cls, baseclass=None, *, v: bool = False):
-        cur_cls: GqylpyCache or type = baseclass or cls
+        cur_cls: FuncCache or type = baseclass or cls
 
-        if cur_cls.__class__ is GqylpyCache:
+        if cur_cls.__class__ is FuncCache:
             yield from cur_cls.__dict__.values() if v else cur_cls.__dict__
             yield from cur_cls.local_instance_dict_set(cur_cls.__base__)
 
@@ -126,7 +126,7 @@ class GqylpyCache(type):
 
 class ClassMethodCaller:
 
-    def __new__(cls, cls_: GqylpyCache, sget, name: str, method):
+    def __new__(cls, cls_: FuncCache, sget, name: str, method):
         if method.__class__ is property:
             __cache_pool__: dict = sget('__cache_pool__')
 
@@ -145,13 +145,16 @@ class ClassMethodCaller:
             else:
                 if '__exec_lock__' in cache:
                     cache['__exec_lock__'].wait()
-                    del cache['__exec_lock__']
+                    try:
+                        del cache['__exec_lock__']
+                    except KeyError:
+                        pass
 
             return cache['__return__']
 
         return object.__new__(cls)
 
-    def __init__(self, cls: GqylpyCache, sget, name: str, method):
+    def __init__(self, cls: FuncCache, sget, name: str, method):
         self.__cls = cls
         self.__sget = sget
         self.__name__ = name
@@ -172,7 +175,10 @@ class ClassMethodCaller:
         else:
             if '__exec_lock__' in cache:
                 cache['__exec_lock__'].wait()
-                del cache['__exec_lock__']
+                try:
+                    del cache['__exec_lock__']
+                except KeyError:
+                    pass
 
         return cache['__return__']
 
@@ -211,7 +217,7 @@ class FunctionCaller:
                f'({self.__func__.__module__}.{self.__qualname__})'
 
 
-def __getattribute__(cls: GqylpyCache):
+def __getattribute__(cls: FuncCache):
     def inner(ins: cls, attr: str):
         sget = super(cls, ins).__getattribute__
 

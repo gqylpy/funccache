@@ -1,5 +1,5 @@
 import setuptools
-import gqylpy_cache as g
+import funccache as g
 
 with open(g.__file__, encoding='utf8') as f:
     for line in f:
@@ -8,9 +8,6 @@ with open(g.__file__, encoding='utf8') as f:
             break
     author, email = f.readline().split(maxsplit=1)[-1].rstrip().split()
     source = f.readline().split()[-1]
-
-with open('README.md', encoding='utf8') as f:
-    readme: str = f.read()
 
 setuptools.setup(
     name=g.__name__,
@@ -21,7 +18,7 @@ setuptools.setup(
     url='http://gqylpy.com',
     project_urls={'Source': source},
     description='如其名，它实现缓存功能，可缓存某个函数或某个类中定义的所有方法的返回值。',
-    long_description=readme,
+    long_description=open('README.md', encoding='utf8').read(),
     long_description_content_type='text/markdown',
     packages=[g.__name__],
     python_requires='>=3.6, <4',

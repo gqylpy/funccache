@@ -1,7 +1,7 @@
-import gqylpy_cache
+import funccache
 
 
-class Test(metaclass=gqylpy_cache):
+class Test(metaclass=funccache):
 
     @staticmethod
     def test_cache():
@@ -23,7 +23,7 @@ t.test_not_cache()
 t.test_not_cache()
 
 
-@gqylpy_cache
+@funccache
 def test():
     print('Run test once.')
 
