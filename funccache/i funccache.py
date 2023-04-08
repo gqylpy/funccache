@@ -13,7 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import time
+import asyncio
 import threading
+import functools
 
 Function: type = threading.setprofile.__class__
 
@@ -139,7 +142,7 @@ class ClassMethodCaller:
                     cache['__return__'] = sget(name)
                 except Exception as e:
                     del __cache_pool__[name]
-                    raise e
+                    raise e from None
                 finally:
                     cache['__exec_lock__'].set()
             else:
@@ -191,16 +194,21 @@ class FunctionCaller:
 
     def __init__(self, func: Function):
         self.__func__ = func
-        self.__name__ = func.__name__
-        self.__qualname__ = func.__qualname__
 
         if func.__class__ is Function:
             self.__globals__ = func.__globals__
+            functools.wraps(self.__func__)(self)
 
-        self.__exec_lock__ = threading.Lock()
+            if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
+                self.__core__ = self.__core_async__
+
+        self.__exec_lock__  = threading.Lock()
         self.__cache_pool__ = {}
 
     def __call__(self, *a, **kw):
+        return self.__core__(*a, **kw)
+
+    def __core__(self, *a, **kw):
         key = a, str(kw)
 
         self.__exec_lock__.acquire()
@@ -213,8 +221,71 @@ class FunctionCaller:
         return self.__cache_pool__[key]
 
     def __str__(self):
-        return f'{FunctionCaller.__name__}' \
-               f'({self.__func__.__module__}.{self.__qualname__})'
+        return str(self.__func__)
+
+    async def __core_async__(self, *a, **kw):
+        key = a, str(kw)
+
+        self.__exec_lock__.acquire()
+        try:
+            if key not in self.__cache_pool__:
+                self.__cache_pool__[key] = await self.__func__(*a, **kw)
+        finally:
+            self.__exec_lock__.release()
+
+        return self.__cache_pool__[key]
+
+
+class FunctionCallerExpirationTime:
+
+    def __init__(self, expires: int = -1):
+        self.__expires = expires
+
+        self.__exec_lock__  = threading.Lock()
+        self.__cache_pool__ = {}
+
+    def __call__(self, func: Function):
+        self.__func__ = func
+
+        if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
+            self.__core__ = self.__core_async__
+
+        @functools.wraps(func, updated=('__dict__', '__globals__'))
+        def inner(*a, **kw):
+            return self.__core__(func, *a, **kw)
+
+        inner.__cache_pool__ = self.__cache_pool__
+
+        return inner
+
+    def __core__(self, func, *a, **kw):
+        key = a, str(kw)
+
+        if key not in self.__cache_pool__ or self.__cache_pool__[key][
+                '__expiration_time__'] < time.time():
+            with self.__exec_lock__:
+                self.__cache_pool__[key] = {
+                    '__return__': func(*a, **kw),
+                    '__expiration_time__': time.time() + self.__expires
+                }
+
+        return self.__cache_pool__[key]['__return__']
+
+    async def __core_async__(self, func, *a, **kw):
+        key = a, str(kw)
+
+        if key not in self.__cache_pool__ or self.__cache_pool__[key][
+                '__expiration_time__'] < time.time():
+            with self.__exec_lock__:
+                self.__cache_pool__[key] = {
+                    '__return__': await func(*a, **kw),
+                    '__expiration_time__': time.time() + self.__expires
+                }
+
+        return self.__cache_pool__[key]['__return__']
+
+    def clear_cache(self):
+        self.__cache_pool__ = {}
 
 
 def __getattribute__(cls: FuncCache):
@@ -236,3 +307,12 @@ def __getattribute__(cls: FuncCache):
         return ClassMethodCaller(cls, sget, attr, value)
 
     return inner
+
+
+def clear_cache_pool(func) -> None:
+    try:
+        func.__cache_pool__.clear()
+    except AttributeError:
+        raise TypeError(
+            f'"{func.__module__}.{func.__qualname__}" is not cached.'
+        ) from None
