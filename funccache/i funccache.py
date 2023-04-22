@@ -18,7 +18,7 @@ import asyncio
 import threading
 import functools
 
-Function: type = threading.setprofile.__class__
+FunctionType: type = threading.setprofile.__class__
 
 
 class FuncCache(type):
@@ -26,7 +26,7 @@ class FuncCache(type):
     __not_cache__ = []
 
     def __new__(mcs, __name__: str, *a, **kw):
-        if isinstance(__name__, (Function, type)):
+        if isinstance(__name__, (FunctionType, type)):
             return FunctionCaller(__name__)
         return type.__new__(mcs, __name__, *a, **kw)
 
@@ -192,10 +192,10 @@ class ClassMethodCaller:
 
 class FunctionCaller:
 
-    def __init__(self, func: Function):
+    def __init__(self, func: FunctionType):
         self.__func__ = func
 
-        if func.__class__ is Function:
+        if func.__class__ is FunctionType:
             self.__globals__ = func.__globals__
             functools.wraps(self.__func__)(self)
 
@@ -244,7 +244,7 @@ class FunctionCallerExpirationTime:
         self.__exec_lock__  = threading.Lock()
         self.__cache_pool__ = {}
 
-    def __call__(self, func: Function):
+    def __call__(self, func: FunctionType):
         self.__func__ = func
 
         if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
