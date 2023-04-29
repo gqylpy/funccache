@@ -11,7 +11,7 @@ value of a callable object or all methods defined in a class.
     >>> def alpha():
     >>>     ...
 
-    @version: 1.5.1
+    @version: 1.5.2
     @author: 竹永康 <gqylpy@outlook.com>
     @source: https://github.com/gqylpy/funccache
 
@@ -45,9 +45,7 @@ def clear_cache_pool(func) -> None:
 class _xe6_xad_x8c_xe7_x90_xaa_xe6_x80_xa1_xe7_x8e_xb2_xe8_x90_x8d_xe4_xba_x91:
     import sys
 
-    __import__(f'{__name__}.i {__name__}')
-    gcode = globals()[f'i {__name__}']
-
+    gcode = __import__(f'{__name__}.i {__name__}', fromlist=...)
     FuncCache = gcode.FuncCache
 
     for gname, gvalue in globals().items():
