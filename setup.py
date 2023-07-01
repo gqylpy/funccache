@@ -1,16 +1,17 @@
 import setuptools
-import funccache as g
+import funccache as i
 
-with open(g.__file__, encoding='utf8') as f:
-    for line in f:
-        if line.startswith('@version: ', 4):
-            version = line.split()[-1]
-            break
-    author, email = f.readline().split(maxsplit=1)[-1].rstrip().split()
-    source = f.readline().split()[-1]
+idoc: list = i.__doc__.split('\n')
+
+for index, line in enumerate(idoc):
+    if line.startswith('@version: ', 4):
+        version = line.split()[-1]
+        break
+_, author, email = idoc[index + 1].split()
+source = idoc[index + 2].split()[-1]
 
 setuptools.setup(
-    name=g.__name__,
+    name=i.__name__,
     version=version,
     author=author,
     author_email=email,
@@ -20,22 +21,23 @@ setuptools.setup(
     description='如其名，它实现缓存功能，可缓存某个函数或某个类中定义的所有方法的返回值。',
     long_description=open('README.md', encoding='utf8').read(),
     long_description_content_type='text/markdown',
-    packages=[g.__name__],
+    packages=[i.__name__],
     python_requires='>=3.6, <4',
     classifiers=[
-        'Environment :: Web Environment',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
+        'Natural Language :: Chinese (Simplified)',
+        'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Topic :: Text Processing :: Indexing',
-        'Topic :: Utilities',
-        'Topic :: Internet',
+        'Topic :: Artistic Software',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11'
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12'
     ]
 )

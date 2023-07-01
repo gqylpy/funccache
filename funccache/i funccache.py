@@ -173,8 +173,13 @@ class ClassMethodCaller:
         except KeyError:
             cache = __cache_pool__[key] = {}
             cache['__exec_lock__'] = threading.Event()
-            cache['__return__'] = self.__sget(self.__name__)(*a, **kw)
-            cache['__exec_lock__'].set()
+            try:
+                cache['__return__'] = self.__sget(self.__name__)(*a, **kw)
+            except Exception as e:
+                del __cache_pool__[key]
+                raise e from None
+            finally:
+                cache['__exec_lock__'].set()
         else:
             if '__exec_lock__' in cache:
                 cache['__exec_lock__'].wait()
@@ -261,8 +266,8 @@ class FunctionCallerExpirationTime:
     def __core__(self, func, *a, **kw):
         key = a, str(kw)
 
-        if key not in self.__cache_pool__ or self.__cache_pool__[key][
-                '__expiration_time__'] < time.time():
+        if key not in self.__cache_pool__ or \
+                self.__cache_pool__[key]['__expiration_time__'] < time.time():
             with self.__exec_lock__:
                 self.__cache_pool__[key] = {
                     '__return__': func(*a, **kw),
@@ -274,8 +279,8 @@ class FunctionCallerExpirationTime:
     async def __core_async__(self, func, *a, **kw):
         key = a, str(kw)
 
-        if key not in self.__cache_pool__ or self.__cache_pool__[key][
-                '__expiration_time__'] < time.time():
+        if key not in self.__cache_pool__ or \
+                self.__cache_pool__[key]['__expiration_time__'] < time.time():
             with self.__exec_lock__:
                 self.__cache_pool__[key] = {
                     '__return__': await func(*a, **kw),
