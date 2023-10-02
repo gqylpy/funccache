@@ -18,6 +18,8 @@ import asyncio
 import threading
 import functools
 
+from typing import Union
+
 FunctionType: type = threading.setprofile.__class__
 
 
@@ -34,9 +36,9 @@ class FuncCache(type):
         __not_cache__: list = __dict__.get('__not_cache__')
 
         if __not_cache__:
-            cls.delete_repeated(__not_cache__)
+            cls.dedup(__not_cache__)
             cls.check_and_tidy_not_cache(__not_cache__, __dict__)
-            cls.delete_repeated(__not_cache__)
+            cls.dedup(__not_cache__)
 
         cls.__getattribute__ = __getattribute__(cls)
 
@@ -104,7 +106,7 @@ class FuncCache(type):
             )(f'"{__package__}" instance "{x}" has no method "{e}".')
 
     @staticmethod
-    def delete_repeated(data: list):
+    def dedup(data: list):
         index = len(data) - 1
         while index > -1:
             offset = -1
@@ -127,7 +129,7 @@ class FuncCache(type):
         __module__ = __package__
 
 
-class ClassMethodCaller:
+class MethodCaller:
 
     def __new__(cls, cls_: FuncCache, sget, name: str, method):
         if method.__class__ is property:
@@ -191,7 +193,7 @@ class ClassMethodCaller:
         return cache['__return__']
 
     def __str__(self):
-        return f'{ClassMethodCaller.__name__}' \
+        return f'{MethodCaller.__name__}' \
                f'({self.__cls.__module__}.{self.__qualname__})'
 
 
@@ -241,10 +243,19 @@ class FunctionCaller:
         return self.__cache_pool__[key]
 
 
-class FunctionCallerExpirationTime:
+class FunctionCallerExpires:
 
-    def __init__(self, expires: int = -1):
-        self.__expires = expires
+    def __init__(
+            self,
+            duration: Union[int, float] = None,
+            expires:  Union[int, float] = None
+    ):
+        if duration is not None:
+            self.__duration = duration
+        elif expires is not None:
+            self.__duration = expires
+        else:
+            self.__duration = float('inf')
 
         self.__exec_lock__  = threading.Lock()
         self.__cache_pool__ = {}
@@ -271,7 +282,7 @@ class FunctionCallerExpirationTime:
             with self.__exec_lock__:
                 self.__cache_pool__[key] = {
                     '__return__': func(*a, **kw),
-                    '__expiration_time__': time.time() + self.__expires
+                    '__expiration_time__': time.time() + self.__duration
                 }
 
         return self.__cache_pool__[key]['__return__']
@@ -284,13 +295,10 @@ class FunctionCallerExpirationTime:
             with self.__exec_lock__:
                 self.__cache_pool__[key] = {
                     '__return__': await func(*a, **kw),
-                    '__expiration_time__': time.time() + self.__expires
+                    '__expiration_time__': time.time() + self.__duration
                 }
 
         return self.__cache_pool__[key]['__return__']
-
-    def clear_cache(self):
-        self.__cache_pool__ = {}
 
 
 def __getattribute__(cls: FuncCache):
@@ -309,7 +317,7 @@ def __getattribute__(cls: FuncCache):
         if not (callable(value) or value.__class__ in (property, classmethod)):
             return sget(attr)
 
-        return ClassMethodCaller(cls, sget, attr, value)
+        return MethodCaller(cls, sget, attr, value)
 
     return inner
 
