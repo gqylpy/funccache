@@ -2,7 +2,7 @@
 [![Release](https://img.shields.io/github/release/gqylpy/funccache.svg?style=flat-square")](https://github.com/gqylpy/funccache/releases/latest)
 [![Python Versions](https://img.shields.io/pypi/pyversions/funccache)](https://pypi.org/project/funccache)
 [![License](https://img.shields.io/pypi/l/funccache)](https://github.com/gqylpy/funccache/blob/master/LICENSE)
-[![Downloads](https://pepy.tech/badge/funccache/month)](https://pepy.tech/project/funccache)
+[![Downloads](https://static.pepy.tech/badge/funccache)](https://pepy.tech/project/funccache)
 
 # funccache
 

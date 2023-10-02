@@ -11,7 +11,7 @@ value of a callable object or all methods defined in a class.
     >>> def alpha():
     >>>     ...
 
-    @version: 1.5.3
+    @version: 1.5.4
     @author: 竹永康 <gqylpy@outlook.com>
     @source: https://github.com/gqylpy/funccache
 
@@ -30,14 +30,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from typing import Optional, Union, Callable
 
 
-def expiration_time(expires: int = -1):
-    """Decorator, can select the cache duration, by the parament `expires`, less
-    than or equal to 0 means immediate expiration."""
+def expires(duration: Optional[Union[int, float]] = None) -> Callable:
+    """Decorator, can specify the cache duration by the parameter `duration`,
+    less than or equal to 0 means immediate expiration, default never expires.
+    """
 
 
-def clear_cache_pool(func) -> None:
+def expiration_time(duration: Optional[Union[int, float]] = None) -> Callable:
+    warnings.warn(
+        f'will be deprecated soon, replaced to {expires}.', DeprecationWarning
+    )
+    return expires(duration)
+
+
+def clear_cache_pool(func: Callable) -> None:
     """Clear the cache pool for the specified function or object or class."""
     func.__cache_pool__.clear()
 
@@ -54,7 +63,8 @@ class _xe6_xad_x8c_xe7_x90_xaa_xe6_x80_xa1_xe7_x8e_xb2_xe8_x90_x8d_xe4_xba_x91:
 
     FuncCache.__module__       = __package__
     FuncCache.FuncCache        = FuncCache
-    FuncCache.expiration_time  = gcode.FunctionCallerExpirationTime
+    FuncCache.expires          = gcode.FunctionCallerExpires
+    FuncCache.expiration_time  = gcode.FunctionCallerExpires
     FuncCache.clear_cache_pool = gcode.clear_cache_pool
 
     sys.modules[__name__] = FuncCache
