@@ -18,7 +18,10 @@ setuptools.setup(
     license='Apache 2.0',
     url='http://gqylpy.com',
     project_urls={'Source': source},
-    description='如其名，它实现缓存功能，可缓存某个函数或某个类中定义的所有方法的返回值。',
+    description='''
+        True to its name, `funccache` implements the cache function. Cache the
+        return value of a callable object or all methods defined in a class.
+    '''.strip().replace('\n       ', ''),
     long_description=open('README.md', encoding='utf8').read(),
     long_description_content_type='text/markdown',
     packages=[i.__name__],

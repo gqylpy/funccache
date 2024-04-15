@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import re
+import sys
 import time
 import asyncio
 import threading
@@ -26,10 +27,10 @@ from typing import (
     FrozenSet, Any
 )
 
-try:
+if sys.version_info >= (3, 10):
     from typing import TypeAlias
-except ImportError:
-    TypeAlias = ...
+else:
+    TypeAlias = TypeVar("TypeAlias")
 
 MethodTypeOrName: TypeAlias = TypeVar('MethodTypeOrName', MethodType, str)
 Closure:          TypeAlias = TypeVar('Closure', bound=Callable)
