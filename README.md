@@ -5,7 +5,7 @@
 [![Downloads](https://static.pepy.tech/badge/funccache)](https://pepy.tech/project/funccache)
 
 # funccache
-English | [中文](README_CN.md)
+English | [中文](https://github.com/gqylpy/funccache/blob/master/README_CN.md)
 
 `funccache`, as its name suggests, is a framework developed by the GQYLPY team that implements function caching. It can cache the return values of specific functions or all methods defined within a class.
 
