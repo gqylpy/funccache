@@ -33,7 +33,8 @@ else:
     TypeAlias = TypeVar("TypeAlias")
 
 MethodTypeOrName: TypeAlias = TypeVar('MethodTypeOrName', MethodType, str)
-Closure:          TypeAlias = TypeVar('Closure', bound=Callable)
+Wrapped = WrappedClosure = TypeVar('Wrapped', bound=Callable[..., Any])
+WrappedReturn: TypeAlias = TypeVar('WrappedReturn')
 
 MethodCachePool: TypeAlias = Dict[
     Union[Tuple[str, Tuple[Tuple[Any, ...], FrozenSet[Tuple[str, Any]]]], str],
@@ -47,12 +48,12 @@ FuncCachePool: TypeAlias = Dict[
 
 
 class FuncCache(type):
-    __shared_instance_cache__: bool                   = False
-    __not_cache__:             List[MethodTypeOrName] = []
-    __ttl__:                   Union[str, int, float] = float('inf')
+    __shared_instance_cache__: bool = False
+    __not_cache__: List[MethodTypeOrName] = []
+    __ttl__: Union[str, int, float] = float('inf')
 
     def __new__(
-            mcs, __name__: Union[str, FunctionType, Type[object]], *a, **kw
+            mcs, __name__: Union[str, Wrapped, Type[object]], *a, **kw
     ) -> Union['FuncCache', 'FunctionCaller']:
         if isinstance(__name__, (FunctionType, type)):
             return FunctionCaller(__name__)
@@ -76,7 +77,13 @@ class FuncCache(type):
             cls.__primary_lock__ = threading.Lock()
             cls.__cache_pool__: MethodCachePool = {}
 
-        cls.__ttl__ = Time2Second(cls.__ttl__)
+        if isinstance(cls.__ttl__, str):
+            cls.__ttl__ = time2second(cls.__ttl__)
+        elif not isinstance(cls.__ttl__, (int, float)):
+            raise TypeError(
+                'class attribute "__ttl__" is expected to be of type int or '
+                f'float, not {cls.__ttl__!r}.'
+            )
 
         type.__init__(cls, __name__, __bases__, __dict__)
 
@@ -97,19 +104,15 @@ class FuncCache(type):
         for index, name_or_method in enumerate(__not_cache__):
             if name_or_method.__class__ is str:
                 name: str = name_or_method
-
                 for x in cls.local_instance_dict_set():
                     if name == x:
                         break
                 else:
                     not_found.add(name)
                     continue
-
                 method: MethodType = getattr(cls, name)
-
             else:
                 method: MethodType = name_or_method
-
                 try:
                     name = __not_cache__[index] = method.__name__
                 except AttributeError:
@@ -119,14 +122,12 @@ class FuncCache(type):
                         name = __not_cache__[index] = method.fget.__name__
                     else:
                         name = name_or_method
-
                 for x in cls.local_instance_dict_set(v=True):
                     if method == x:
                         break
                 else:
                     not_found.add(name)
                     continue
-
             if not (
                     callable(method)
                     or method.__class__ in (property, staticmethod, classmethod)
@@ -158,7 +159,6 @@ class FuncCache(type):
             cls, baseclass: Optional['FuncCache'] = None, /, *, v: bool = False
     ) -> Iterable[MethodTypeOrName]:
         cur_cls: FuncCache = baseclass or cls
-
         if cur_cls.__class__ is FuncCache:
             yield from cur_cls.__dict__.values() if v else cur_cls.__dict__
             yield from cur_cls.local_instance_dict_set(cur_cls.__base__)
@@ -189,11 +189,12 @@ class MethodCaller:
                         '__expiration_time__': 0
                     }
 
-        if cache['__expiration_time__'] < time.time():
+        if cache['__expiration_time__'] < time.monotonic():
             with cache['__secondary_lock__']:
-                if cache['__expiration_time__'] < time.time():
+                if cache['__expiration_time__'] < time.monotonic():
                     cache['__return__'] = sget(name)
-                    cache['__expiration_time__'] = time.time() + cls_.__ttl__
+                    cache['__expiration_time__'] = \
+                        time.monotonic() + cls_.__ttl__
 
         return cache['__return__']
 
@@ -226,12 +227,12 @@ class MethodCaller:
                         '__expiration_time__': 0
                     }
 
-        if cache['__expiration_time__'] < time.time():
+        if cache['__expiration_time__'] < time.monotonic():
             with cache['__secondary_lock__']:
-                if cache['__expiration_time__'] < time.time():
+                if cache['__expiration_time__'] < time.monotonic():
                     cache['__return__'] = self.__sget(self.__name__)(*a, **kw)
                     cache['__expiration_time__'] = \
-                        time.time() + self.__cls.__ttl__
+                        time.monotonic() + self.__cls.__ttl__
 
         return cache['__return__']
 
@@ -242,26 +243,25 @@ class MethodCaller:
 
 class FunctionCaller:
 
-    def __init__(self, func: FunctionType, /):
+    def __init__(self, func: Wrapped, /):
         self.__func__ = func
 
         if func.__class__ is FunctionType:
             self.__globals__ = func.__globals__
             functools.wraps(func)(self)
-
             if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
                 self.core = self.acore
 
         self.__primary_lock__ = threading.Lock()
         self.__cache_pool__: FuncCachePool = {}
 
-    def __call__(self, *a, **kw) -> Any:
+    def __call__(self, *a, **kw) -> WrappedReturn:
         return self.core(*a, **kw)
 
     def __str__(self) -> str:
         return str(self.__func__)
 
-    def core(self, *a, **kw) -> Any:
+    def core(self, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
 
         try:
@@ -286,7 +286,7 @@ class FunctionCaller:
 
         return result
 
-    async def acore(self, *a, **kw) -> Any:
+    async def acore(self, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
 
         try:
@@ -314,18 +314,20 @@ class FunctionCaller:
 
 class FunctionCallerTTL:
 
-    def __init__(self, ttl: Optional[Union[str, int, float]] = None, /):
-        if ttl is not None:
-            self.__ttl = Time2Second(ttl)
-        elif ttl is not None:
-            self.__ttl = Time2Second(ttl)
-        else:
-            self.__ttl = float('inf')
+    def __init__(self, ttl: Union[int, float, str] = float('inf'), /):
+        if isinstance(ttl, str):
+            ttl = time2second(ttl)
+        elif not isinstance(ttl, (int, float)):
+            raise TypeError(
+                'parameter "ttl" is expected to be of type int or float, '
+                f'not {ttl!r}.'
+            )
 
+        self.__ttl = ttl
         self.__primary_lock__ = threading.Lock()
         self.__cache_pool__: FuncCachePool = {}
 
-    def __call__(self, func: FunctionType, /) -> Closure:
+    def __call__(self, func: Wrapped, /) -> WrappedClosure:
         self.__func__ = func
 
         if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
@@ -339,9 +341,8 @@ class FunctionCallerTTL:
 
         return inner
 
-    def core(self, func: FunctionType, /, *a, **kw) -> Any:
+    def core(self, func: Wrapped, /, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
-
         cache: Dict[str, Any] = self.__cache_pool__.get(key)
 
         if not cache:
@@ -352,17 +353,16 @@ class FunctionCallerTTL:
                         '__expiration_time__': 0
                     }
 
-        if cache['__expiration_time__'] < time.time():
+        if cache['__expiration_time__'] < time.monotonic():
             with cache['__secondary_lock__']:
-                if cache['__expiration_time__'] < time.time():
+                if cache['__expiration_time__'] < time.monotonic():
                     cache['__return__'] = func(*a, **kw)
-                    cache['__expiration_time__'] = time.time() + self.__ttl
+                    cache['__expiration_time__'] = time.monotonic() + self.__ttl
 
         return cache['__return__']
 
-    async def acore(self, func: FunctionType, /, *a, **kw) -> Any:
+    async def acore(self, func: Wrapped, /, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
-
         cache: Dict[str, Any] = self.__cache_pool__.get(key)
 
         if not cache:
@@ -373,11 +373,11 @@ class FunctionCallerTTL:
                         '__expiration_time__': 0
                     }
 
-        if cache['__expiration_time__'] < time.time():
+        if cache['__expiration_time__'] < time.monotonic():
             with cache['__secondary_lock__']:
-                if cache['__expiration_time__'] < time.time():
+                if cache['__expiration_time__'] < time.monotonic():
                     cache['__return__'] = await func(*a, **kw)
-                    cache['__expiration_time__'] = time.time() + self.__ttl
+                    cache['__expiration_time__'] = time.monotonic() + self.__ttl
 
         return cache['__return__']
 
@@ -390,13 +390,11 @@ class FunctionCallerCount:
             raise TypeError(
                 f'parameter "count" type must be an int, not "{x}".'
             )
-
         self.__count = count
-
         self.__primary_lock__ = threading.Lock()
         self.__cache_pool__: FuncCachePool = {}
 
-    def __call__(self, func: FunctionType, /) -> Closure:
+    def __call__(self, func: Wrapped, /) -> WrappedClosure:
         self.__func__ = func
 
         if asyncio.iscoroutinefunction(getattr(func, '__wrapped__', func)):
@@ -410,9 +408,8 @@ class FunctionCallerCount:
 
         return inner
 
-    def core(self, func: FunctionType, /, *a, **kw) -> Any:
+    def core(self, func: Wrapped, /, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
-
         cache: Dict[str, Any] = self.__cache_pool__.get(key)
 
         if not cache:
@@ -433,9 +430,8 @@ class FunctionCallerCount:
 
         return cache['__return__']
 
-    async def acore(self, func: FunctionType, /, *a, **kw) -> Any:
+    async def acore(self, func: Wrapped, /, *a, **kw) -> WrappedReturn:
         key = a, frozenset(kw.items())
-
         cache: Dict[str, Any] = self.__cache_pool__.get(key)
 
         if not cache:
@@ -457,7 +453,7 @@ class FunctionCallerCount:
         return cache['__return__']
 
 
-def __getattribute__(cls: FuncCache, /) -> Closure:
+def __getattribute__(cls: FuncCache, /) -> Callable:
     def inner(ins: cls, attr: str, /) -> Any:
         sget: Callable[[str], Any] = super(cls, ins).__getattribute__
 
@@ -489,42 +485,24 @@ def clear_cache_pool(func: Union[
         ) from None
 
 
-class Time2Second(
-    metaclass=type('', (type,), {'__call__': lambda *a: type.__call__(*a)()})
-):
-    matcher = re.compile(r'''^
+def time2second(unit_time: str, /, *, __pattern__ = re.compile(r'''
         (?:(\d+(?:\.\d+)?)y)?
         (?:(\d+(?:\.\d+)?)d)?
         (?:(\d+(?:\.\d+)?)h)?
         (?:(\d+(?:\.\d+)?)m)?
-        (?:(\d+(?:\.\d+)?)s)?
-    $''', flags=re.X | re.I)
+        (?:(\d+(?:\.\d+)?)s?)?
+''', flags=re.X | re.I)) -> Union[int, float]:
+    if unit_time.isdigit():
+        return int(unit_time)
 
-    m = 60
-    h = 60 * m
-    d = 24 * h
-    y = 365 * d
+    if not (unit_time and (m := __pattern__.fullmatch(unit_time))):
+        raise ValueError(f'unit time {unit_time!r} format is incorrect.')
 
-    def __init__(self, unit_time: Union[int, float, str], /):
-        self.unit_time = unit_time
+    r = 0
 
-    def __call__(self) -> Union[int, float]:
-        if self.unit_time.__class__ in (int, float):
-            return self.unit_time
-        elif self.unit_time.isdigit():
-            return int(self.unit_time)
-        elif '.' in self.unit_time and self.unit_time.count('.') == 1 and \
-                self.unit_time.replace('.', '').isdigit():
-            return float(self.unit_time)
-        y, d, h, m, s = self.matcher.findall(self.unit_time)[0]
-        y, d, h, m, s = self.g(y), self.g(d), self.g(h), self.g(m), self.g(s)
-        return self.y * y + self.d * d + self.h * h + self.m * m + s
+    for x, s in zip(m.groups(), (31536000, 86400, 3600, 60, 1)):
+        if x is not None:
+            x = int(x) if x.isdigit() else float(x)
+            r += x * s
 
-    @staticmethod
-    def g(x: str, /) -> Union[int, float]:
-        if not x:
-            return 0
-        try:
-            return int(x)
-        except ValueError:
-            return float(x)
+    return int(r) if isinstance(r, float) and r.is_integer() else r
