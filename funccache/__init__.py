@@ -11,12 +11,12 @@ value of a callable object or all methods defined in a class.
     >>> def alpha():
     >>>     ...
 
-    @version: 2.0.1
-    @author: 竹永康 <gqylpy@outlook.com>
-    @source: https://github.com/gqylpy/funccache
-
 ────────────────────────────────────────────────────────────────────────────────
 Copyright (c) 2022-2024 GQYLPY <http://gqylpy.com>. All rights reserved.
+
+    @version: 2.0.2
+    @author: 竹永康 <gqylpy@outlook.com>
+    @source: https://github.com/gqylpy/funccache
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ limitations under the License.
 from typing import Optional, Union, Callable
 
 
-def ttl(x: Optional[Union[str, int, float]] = None, /) -> Callable:
+def ttl(x: Optional[Union[int, float, str]] = None, /) -> Callable:
     """Decorator, can specify the cache time to live by the parameter `x`, less
     than or equal to 0 means immediate expiration, default never expires."""
 
