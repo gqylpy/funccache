@@ -67,9 +67,11 @@ class FuncCache(type):
             cls.check_and_tidy_not_cache(__not_cache__)
             cls.dedup(__not_cache__)
 
-        assert '__getattribute__' not in __dict__, \
-            f'instances of "{FuncCache.__name__}" are not allowed to define ' \
-            'method "__getattribute__".'
+        if '__getattribute__' not in __dict__:
+            raise AttributeError(
+                f'instances of "{FuncCache.__name__}" are not allowed to '
+                'define method "__getattribute__".'
+            )
 
         cls.__getattribute__ = __getattribute__(cls)
 

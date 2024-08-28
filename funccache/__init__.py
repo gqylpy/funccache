@@ -14,7 +14,7 @@ value of a callable object or all methods defined in a class.
 ────────────────────────────────────────────────────────────────────────────────
 Copyright (c) 2022-2024 GQYLPY <http://gqylpy.com>. All rights reserved.
 
-    @version: 2.0.2
+    @version: 2.0.3
     @author: 竹永康 <gqylpy@outlook.com>
     @source: https://github.com/gqylpy/funccache
 
