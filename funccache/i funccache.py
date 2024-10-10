@@ -33,6 +33,7 @@ else:
     TypeAlias = TypeVar("TypeAlias")
 
 MethodTypeOrName: TypeAlias = TypeVar('MethodTypeOrName', MethodType, str)
+TTL: TypeAlias = TypeVar('TTL', int, float, str)
 Wrapped = WrappedClosure = TypeVar('Wrapped', bound=Callable[..., Any])
 WrappedReturn: TypeAlias = TypeVar('WrappedReturn')
 
@@ -50,7 +51,7 @@ FuncCachePool: TypeAlias = Dict[
 class FuncCache(type):
     __shared_instance_cache__: bool = False
     __not_cache__: List[MethodTypeOrName] = []
-    __ttl__: Union[str, int, float] = float('inf')
+    __ttl__: TTL = float('inf')
 
     def __new__(
             mcs, __name__: Union[str, Wrapped, Type[object]], *a, **kw
@@ -67,7 +68,7 @@ class FuncCache(type):
             cls.check_and_tidy_not_cache(__not_cache__)
             cls.dedup(__not_cache__)
 
-        if '__getattribute__' not in __dict__:
+        if '__getattribute__' in __dict__:
             raise AttributeError(
                 f'instances of "{FuncCache.__name__}" are not allowed to '
                 'define method "__getattribute__".'
@@ -316,7 +317,7 @@ class FunctionCaller:
 
 class FunctionCallerTTL:
 
-    def __init__(self, ttl: Union[int, float, str] = float('inf'), /):
+    def __init__(self, ttl: TTL = float('inf'), /):
         if isinstance(ttl, str):
             ttl = time2second(ttl)
         elif not isinstance(ttl, (int, float)):
